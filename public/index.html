@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>旅遊打包建議</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f7f8fc; color: #222; }
+    .container { max-width: 720px; margin: auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 16px 45px rgba(15, 23, 42, 0.12); }
+    h1 { margin-top: 0; font-size: 28px; }
+    label { display: block; margin: 18px 0 8px; font-weight: 600; }
+    input { width: 100%; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; }
+    button { margin-top: 16px; width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .section { margin-top: 24px; }
+    .section h2 { margin-bottom: 12px; font-size: 20px; }
+    .list { padding-left: 20px; }
+    .message { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #f0f9ff; color: #1d4ed8; }
+    .error { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>旅遊打包建議系統</h1>
+    <label for="city">目的地城市</label>
+    <input id="city" type="text" placeholder="例如: Taipei" />
+
+    <label for="date">預計出發日期</label>
+    <input id="date" type="date" />
+
+    <button id="checkWeather">取得天氣建議</button>
+    <button id="saveSheet" disabled>存入 Google Sheets</button>
+
+    <div id="result" class="section"></div>
+    <div id="feedback" class="message" style="display: none;"></div>
+  </div>
+  <script>
+    const cityInput = document.getElementById('city');
+    const dateInput = document.getElementById('date');
+    const checkWeatherBtn = document.getElementById('checkWeather');
+    const saveSheetBtn = document.getElementById('saveSheet');
+    const resultEl = document.getElementById('result');
+    const feedbackEl = document.getElementById('feedback');
+    let currentData = null;
+
+    function showMessage(text, isError = false) {
+      feedbackEl.textContent = text;
+      feedbackEl.className = isError ? 'message error' : 'message';
+      feedbackEl.style.display = 'block';
+    }
+
+    function renderResult(data) {
+      if (!data) {
+        resultEl.innerHTML = '';
+        return;
+      }
+      const packingHtml = data.packingList.map(item => `<li>${item}</li>`).join('');
+      resultEl.innerHTML = `
+        <div class="section">
+          <h2>旅行建議</h2>
+          <p><strong>城市：</strong>${data.locationName}</p>
+          <p><strong>出發日期：</strong>${data.departDate}</p>
+          <p><strong>平均氣溫：</strong>${data.averageTemp}°C</p>
+          <p><strong>天氣型態：</strong>${data.weatherType} (${data.weatherDescription})</p>
+          <h3>建議打包清單</h3>
+          <ul class="list">${packingHtml}</ul>
+        </div>
+      `;
+    }
+
+    checkWeatherBtn.addEventListener('click', async () => {
+      const city = cityInput.value.trim();
+      const date = dateInput.value;
+      if (!city || !date) {
+        showMessage('請輸入目的地城市與出發日期。', true);
+        return;
+      }
+      showMessage('正在查詢天氣建議...');
+      saveSheetBtn.disabled = true;
+      try {
+        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}&date=${encodeURIComponent(date)}`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || '查詢失敗');
+        }
+        currentData = data;
+        renderResult(data);
+        showMessage('天氣建議已準備好。您可以一鍵存入 Google Sheets。');
+        saveSheetBtn.disabled = false;
+      } catch (error) {
+        showMessage(error.message, true);
+      }
+    });
+
+    saveSheetBtn.addEventListener('click', async () => {
+      if (!currentData) {
+        showMessage('請先取得天氣建議。', true);
+        return;
+      }
+      showMessage('正在存入 Google Sheets...');
+      try {
+        const response = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            city: currentData.locationName,
+            departDate: currentData.departDate,
+            averageTemp: currentData.averageTemp,
+            weatherType: currentData.weatherType,
+            packingList: currentData.packingList
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || '存檔失敗');
+        }
+        showMessage('已成功存入 Google Sheets！');
+      } catch (error) {
+        showMessage(error.message, true);
+      }
+    });
+  </script>
+</body>
+</html>
