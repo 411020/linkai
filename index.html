@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>旅行資料助手</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <section class="card">
+      <h1>期末專題：旅遊資料助手</h1>
+      <p>輸入目的地城市與預計出發日期，系統會自動抓取天氣資料，並用 AI 風格邏輯產生打包建議，最後一鍵存入 Google Spreadsheet。</p>
+      <div class="field-group">
+        <label for="city">目的地城市</label>
+        <input id="city" placeholder="例如 Taipei" />
+      </div>
+      <div class="field-group">
+        <label for="date">預計出發日期</label>
+        <input id="date" type="date" />
+      </div>
+      <div class="button-group">
+        <button id="loadButton">自動填入資料</button>
+        <button id="saveButton" disabled>儲存到 Google Sheets</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="card result-card hidden" id="resultCard">
+      <h2>自動填入結果</h2>
+      <dl>
+        <div class="result-row"><dt>城市</dt><dd id="resultCity"></dd></div>
+        <div class="result-row"><dt>出發日期</dt><dd id="resultDate"></dd></div>
+        <div class="result-row"><dt>氣候</dt><dd id="resultWeather"></dd></div>
+        <div class="result-row"><dt>平均氣溫</dt><dd id="resultTemp"></dd></div>
+      </dl>
+      <h3>建議攜帶行李</h3>
+      <ul id="packingList" class="packing-list"></ul>
+    </section>
+  </main>
+  <script src="assets/app.js"></script>
+</body>
+</html>
